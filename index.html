@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spider Graph Maker</title>
+  <style>
+  body { font-family: Arial, sans-serif; background: #222; color: #fff; }
+  #spiderGraph { display: block; margin: 40px auto; background: #333; border-radius: 10px; }
+  </style>
+</head>
+<body>
+  <h2 style="text-align:center;">Spider Graph Maker</h2>
+  <svg id="spiderGraph" width="700" height="700"></svg>
+  <div style="text-align:center; margin-top:20px;">
+    <button id="downloadBtn" style="padding:10px 20px; font-size:16px;">Download PNG</button>
+  </div>
+  <script>
+    function downloadSVGAsPNG() {
+      const svg = document.getElementById('spiderGraph');
+      const serializer = new XMLSerializer();
+      const svgString = serializer.serializeToString(svg);
+      const canvas = document.createElement('canvas');
+      canvas.width = svg.width.baseVal.value;
+      canvas.height = svg.height.baseVal.value;
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      img.onload = function() {
+        ctx.fillStyle = window.getComputedStyle(document.body).backgroundColor;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+        const link = document.createElement('a');
+        link.download = 'spidergraph.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      };
+      img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgString)));
+    }
+    document.getElementById('downloadBtn').addEventListener('click', downloadSVGAsPNG);
+    // Branches and scores (1-9)
+    // Category values for easy editing
+    const evaderValue = 1;
+    const spreadingValue = 5;
+    const phishingValue = 8;
+    const bankerValue = 4;
+    const trojanValue = 6;
+    const adwareValue = 9;
+    const spywareValue = 2;
+    const exploiterValue = 9;
+    const ransomwareValue = 7;
+    const minerValue = 5;
+
+    const data = [
+      { label: 'Evader', emoji: '🕵️', value: evaderValue, color: '#1976D2' },
+      { label: 'Spreading', emoji: '🌐', value: spreadingValue, color: '#FFA500' },
+      { label: 'Phishing', emoji: '🎣', value: phishingValue, color: '#FFD700' },
+      { label: 'Banker', emoji: '💰', value: bankerValue, color: '#00BFFF' },
+      { label: 'Trojan', emoji: '🐴', value: trojanValue, color: '#7CFC00' },
+      { label: 'Adware', emoji: '📢', value: adwareValue, color: '#00FF7F' },
+      { label: 'Spyware', emoji: '👁️', value: spywareValue, color: '#8A2BE2' },
+      { label: 'Exploiter', emoji: '🛠️', value: exploiterValue, color: '#FF1493' },
+      { label: 'Ransomware', emoji: '🔒', value: ransomwareValue, color: '#FF4500' },
+      { label: 'Miner', emoji: '⛏️', value: minerValue, color: '#388E3C' }
+    ];
+  const cx = 350, cy = 350, r = 240;
+    const svg = document.getElementById('spiderGraph');
+    // Draw axes and labels
+    data.forEach((d, i) => {
+      const angle = (2 * Math.PI * i) / data.length;
+      const x = cx + r * Math.cos(angle);
+      const y = cy + r * Math.sin(angle);
+      const axis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      axis.setAttribute('x1', cx);
+      axis.setAttribute('y1', cy);
+      axis.setAttribute('x2', x);
+      axis.setAttribute('y2', y);
+      axis.setAttribute('stroke', '#888');
+      axis.setAttribute('stroke-width', '2');
+      svg.appendChild(axis);
+      // Label
+      let labelX = cx + (r + 30) * Math.cos(angle);
+      const labelY = cy + (r + 30) * Math.sin(angle);
+      // Offset Adware label to the left
+      if (d.label === 'Adware') {
+        labelX -= 20;
+      }
+      const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      label.setAttribute('x', labelX);
+      label.setAttribute('y', labelY);
+      label.setAttribute('fill', d.color);
+  label.setAttribute('font-size', '20');
+      label.setAttribute('font-weight', 'bold');
+      label.setAttribute('text-anchor', 'middle');
+      label.setAttribute('alignment-baseline', 'middle');
+  label.textContent = `${d.emoji} ${d.label}`;
+      svg.appendChild(label);
+    });
+    // Draw spider polygon and connecting line
+    let points = '';
+    let pathPoints = [];
+    data.forEach((d, i) => {
+      const angle = (2 * Math.PI * i) / data.length;
+      const score = Math.max(1, Math.min(9, d.value));
+      const scaled = score / 10;
+      const x = cx + r * scaled * Math.cos(angle);
+      const y = cy + r * scaled * Math.sin(angle);
+      points += `${x},${y} `;
+      pathPoints.push({x, y});
+    });
+  // Draw filled Catmull-Rom spline
+  const fillPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  fillPath.setAttribute('d', catmullRom2bezier(pathPoints));
+  fillPath.setAttribute('fill', '#009688');
+  fillPath.setAttribute('fill-opacity', '0.4');
+  fillPath.setAttribute('stroke', 'none');
+  svg.appendChild(fillPath);
+    // Catmull-Rom spline for smoother curves
+    function catmullRom2bezier(points) {
+      let d = '';
+      for (let i = 0; i < points.length; i++) {
+        const p0 = points[(i - 1 + points.length) % points.length];
+        const p1 = points[i];
+        const p2 = points[(i + 1) % points.length];
+        const p3 = points[(i + 2) % points.length];
+        if (i === 0) {
+          d += `M ${p1.x} ${p1.y} `;
+        }
+        const cp1x = p1.x + (p2.x - p0.x) / 6;
+        const cp1y = p1.y + (p2.y - p0.y) / 6;
+        const cp2x = p2.x - (p3.x - p1.x) / 6;
+        const cp2y = p2.y - (p3.y - p1.y) / 6;
+        d += `C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y} `;
+      }
+      d += 'Z';
+      return d;
+    }
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', catmullRom2bezier(pathPoints));
+    path.setAttribute('fill', 'none');
+  path.setAttribute('stroke', '#1976D2');
+    path.setAttribute('stroke-width', '4');
+    svg.appendChild(path);
+    // Draw data points
+    data.forEach((d, i) => {
+      const angle = (2 * Math.PI * i) / data.length;
+      const score = Math.max(1, Math.min(9, d.value));
+      const scaled = score / 10;
+      const x = cx + r * scaled * Math.cos(angle);
+      const y = cy + r * scaled * Math.sin(angle);
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('cx', x);
+      circle.setAttribute('cy', y);
+  circle.setAttribute('r', 4);
+      circle.setAttribute('fill', d.color);
+      circle.setAttribute('stroke', '#222');
+      circle.setAttribute('stroke-width', '2');
+      svg.appendChild(circle);
+    });
+  </script>
+</body>
+</html>
